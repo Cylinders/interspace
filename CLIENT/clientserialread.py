@@ -1,5 +1,19 @@
 import serial
 import serial.tools.list_ports
+import win32api
+
+letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+for letter in letters: 
+    print("we are checking these drives")
+    try: 
+        if(win32api.GetVolumeInformation(letter + ":\\")[0] == "INTERSPACE"): 
+            break
+    except:
+        pass
+
+
+
 
 
 potentialPorts = []
@@ -12,6 +26,8 @@ def list_serial_ports():
 list_serial_ports()
 finalPort = ""
 print(potentialPorts)
+print("entering loop iteration")
+"""
 for port in potentialPorts:
     ser = serial.Serial(port, 115200)
     check = ""
@@ -23,13 +39,26 @@ for port in potentialPorts:
         break
     else: 
         print("This was not the module.")
+print("I am here")
+print("final port:" + finalPort)
+"""
 
-print(finalPort)
-        
+ser = serial.Serial("COM5", 115200)
+finalPort = "FUCK"
+serIn = "dumass"
 if (finalPort != ""):
     while True:
-        # print(ser.readline().decode().strip())
-        serIn = ser.readline().decode().strip()
+        print("reading again")
         print(serIn)
+        print("going to write")
+        print("finished writing")
+        print(serIn)
+        
 else: 
     print("The module was not detected. ")
+
+
+
+class interspaceAPI():
+    def __init__(self):
+        self.

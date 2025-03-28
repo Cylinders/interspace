@@ -38,7 +38,7 @@ while True:
         if b > 100: 
             print("Fail")
             break 
-            
+                                     
     print(rfm69.rssi())
     
-    print("interspace1.0distance in meters: " + str(300_000_000 * (travelTime - .7863)) )        
+    print("interspace1.0distance in meters: " + str(-.65*rfm69.rssi() - 88.4) )        
