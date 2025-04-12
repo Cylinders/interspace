@@ -48,17 +48,16 @@ finalPort = "FUCK"
 serIn = "dumass"
 if (finalPort != ""):
     while True:
+        serIn = ser.readline()
         print("reading again")
-        print(serIn)
-        print("going to write")
-        print("finished writing")
         print(serIn)
         
 else: 
     print("The module was not detected. ")
 
 
-
+"""
 class interspaceAPI():
     def __init__(self):
         self.
+"""
