@@ -1,71 +1,135 @@
 import tkinter as tk
+from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import matplotlib.pyplot as plt
 import os
-import serial
+import threading
 import serial.tools.list_ports
+import interspace
+import time
+from datetime import datetime
 
-def draw_grid(canvas, width, height, base_spacing=100, scale=1.0):
-    """Draws a green grid on a black background, adjusting spacing dynamically and adding axis lines."""
-    canvas.delete('grid')
-    center_x, center_y = width // 2, height // 2
+# --------- Interspace Setup with Popup Port Selection ---------
 
-    # Adjust spacing dynamically to prevent excessive line density
-    spacing = max(int(base_spacing * scale), 20)
+# Connect to Interspace
+api = interspace.Interspace()
 
-    for x in range(center_x % spacing, width, spacing):
-        canvas.create_line(x, 0, x, height, fill='green', tags='grid')
+# --------- Tkinter Setup ---------
 
-    for y in range(center_y % spacing, height, spacing):
-        canvas.create_line(0, y, width, y, fill='green', tags='grid')
+root = tk.Tk()
+root.title("Radar Display with Matplotlib")
+root.geometry("1600x900")
+root.configure(bg='white')
 
-    # Draw thicker x and y axes
-    canvas.create_line(center_x, 0, center_x, height, fill='white', width=2, tags='grid')  # Y-axis
-    canvas.create_line(0, center_y, width, center_y, fill='white', width=2, tags='grid')  # X-axis
+top_frame = tk.Frame(root, bg='white')
+top_frame.pack(fill=tk.X)
 
-def update_points(canvas, points, scale=1.0):
-    """Updates the canvas with new points, scaling them relative to zoom and centering on a Cartesian plane."""
-    canvas.delete('points')
+main_frame = tk.Frame(root, bg='white')
+main_frame.pack(fill=tk.BOTH, expand=True)
 
-    if points:
-        you_x, you_y = points[-1]  # 'You' is the last point
-    else:
-        return
+radar_frame = tk.Frame(main_frame, width=800, height=800, bg='white')
+radar_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-    center_x, center_y = width // 2, height // 2
-    offset_x, offset_y = center_x - you_x, center_y - you_y  # Centering offsets
+chat_frame = tk.Frame(main_frame, bg='white')
+chat_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-    for i, (x, y) in enumerate(points):
-        # Transform coordinates: move origin to 'You' and invert y-axis
-        scaled_x = (x + offset_x) * scale
-        scaled_y = (height - (y + offset_y) * scale)  # Invert y-axis
+# --------- Buttons ---------
 
-        if i == len(points) - 1:  # Last point is special
-            canvas.create_oval(scaled_x-10, scaled_y-10, scaled_x+10, scaled_y+10, fill='red', outline='red', tags='points')
-            canvas.create_text(scaled_x, scaled_y-20, text="You", fill='red', font=('Arial', 16), tags='points')
-        else:
-            canvas.create_oval(scaled_x-10, scaled_y-10, scaled_x+10, scaled_y+10, fill='green', outline='green', tags='points')
+def auto_update():
+    pass
 
-        canvas.create_text(scaled_x, scaled_y-25, text=f"({x}, {y})", fill='white', font=('Arial', 14), tags='points')
+def reset():
+    pass
 
-def on_zoom(event):
-    """Handles zooming in and out on the radar view."""
-    global zoom_scale
-    zoom_scale *= 1.1 if event.delta > 0 else 0.9
-    zoom_scale = max(0.1, min(zoom_scale, 10))  # Prevent excessive zooming
-    canvas.delete("all")
-    draw_grid(canvas, width, height, scale=zoom_scale)
-    update_points(canvas, default_points, scale=zoom_scale)
+auto_update_button = tk.Button(top_frame, text="Auto Update", command=auto_update, bg='white')
+auto_update_button.pack(side=tk.LEFT)
+
+reset_button = tk.Button(top_frame, text="Reset", command=reset, bg='white')
+reset_button.pack(side=tk.LEFT)
+
+# --------- Matplotlib Setup ---------
+
+fig, ax = plt.subplots()
+fig.patch.set_facecolor("white")
+ax.set_facecolor("white")
+ax.set_title("Module Positions", color="black")
+ax.set_xlabel("X Axis", color='black')
+ax.set_ylabel("Y Axis", color='black')
+
+ax.tick_params(axis='x', colors='black')
+ax.tick_params(axis='y', colors='black')
+for spine in ax.spines.values():
+    spine.set_color('black')
+
+# Default points
+other_modules = [(100, 100), (200, 200), (300, 300)]
+you = (450, 450)
+
+for x, y in other_modules:
+    ax.scatter(x, y, color='green')
+    ax.text(x + 5, y + 5, "OTHER MODULES", color='green', fontsize=9)
+
+x, y = you
+ax.scatter(x, y, color='red')
+ax.text(x + 5, y + 5, "YOU", color='red', fontsize=9)
+
+ax.grid(True, color='lightgray', linestyle='--', linewidth=0.5)
+
+canvas = FigureCanvasTkAgg(fig, master=radar_frame)
+canvas.draw()
+canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+toolbar = NavigationToolbar2Tk(canvas, radar_frame)
+toolbar.update()
+toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+# --------- Chat Setup ---------
+
+def get_timestamp():
+    return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 
 def on_submit():
-    """Handles text input submission and updates chat."""
     text = entry.get()
-    if text:
+    target_text = target_entry.get()
+    if text or target_text:
+        timestamp = get_timestamp()
+        message_lines = []
+        line = f"{timestamp} Target: {target_text}\n"
+        message_lines.append(line)
+        api.sendMessage(target_text, text)
+
         with open("savedChat.txt", "a") as file:
-            file.write(text + "\n")
+            file.writelines(message_lines)
+        # Append directly to chat log
+        chat_log.config(state=tk.NORMAL)
+        for line in message_lines:
+            chat_log.insert(tk.END, line)
+        chat_log.config(state=tk.DISABLED)
+        chat_log.yview(tk.END)
+
         entry.delete(0, tk.END)
-        update_chat_log()
+        target_entry.delete(0, tk.END)
+
+def on_reset():
+    timestamp = get_timestamp()
+    line = f"{timestamp} Chat log cleared\n"
+
+    # Clear the saved chat file, but add a reset message
+    with open("savedChat.txt", "w") as file:
+        file.write(line)
+
+    # Clear and update the chat log display
+    chat_log.config(state=tk.NORMAL)
+    chat_log.delete(1.0, tk.END)
+    chat_log.insert(tk.END, line)
+    chat_log.config(state=tk.DISABLED)
+    chat_log.yview(tk.END)
+
+    # Clear entry fields
+    entry.delete(0, tk.END)
+    target_entry.delete(0, tk.END)
 
 def update_chat_log():
-    """Reads the chat log from the file and updates the text widget."""
     chat_log.config(state=tk.NORMAL)
     chat_log.delete(1.0, tk.END)
     if os.path.exists("savedChat.txt"):
@@ -74,70 +138,66 @@ def update_chat_log():
     chat_log.config(state=tk.DISABLED)
     chat_log.yview(tk.END)
 
-def auto_update():
-    """Placeholder function for auto-update feature."""
-    pass
+# Chat log and scrollbar
+chat_log = tk.Text(chat_frame, width=80, height=40, font=('Arial', 14), state=tk.DISABLED, bg='white', wrap='word')
+chat_log.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-def reset():
-    """Placeholder function for reset feature."""
-    pass
-
-# Initialize main window
-root = tk.Tk()
-root.title("Radar Display")
-root.geometry("1600x900")
-
-width, height = 800, 800
-zoom_scale = 1.0
-
-# Create top button frame
-top_frame = tk.Frame(root)
-top_frame.pack(fill=tk.X)
-
-auto_update_button = tk.Button(top_frame, text="Auto Update", command=auto_update)
-auto_update_button.pack(side=tk.LEFT)
-
-reset_button = tk.Button(top_frame, text="Reset", command=reset)
-reset_button.pack(side=tk.LEFT)
-
-# Create main content frame
-main_frame = tk.Frame(root)
-main_frame.pack(fill=tk.BOTH, expand=True)
-
-# Create radar frame
-radar_frame = tk.Frame(main_frame, width=width, height=height)
-radar_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-canvas = tk.Canvas(radar_frame, width=width, height=height, bg='black')
-canvas.pack(fill=tk.BOTH, expand=True)
-
-canvas.bind("<MouseWheel>", on_zoom)
-
-draw_grid(canvas, width, height)
-
-# Create chat frame
-chat_frame = tk.Frame(main_frame, width=width, height=height)
-chat_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
-chat_scrollbar = tk.Scrollbar(chat_frame)
+chat_scrollbar = tk.Scrollbar(chat_frame, command=chat_log.yview)
 chat_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-chat_log = tk.Text(chat_frame, width=80, height=40, font=('Arial', 14), state=tk.DISABLED, yscrollcommand=chat_scrollbar.set)
-chat_log.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-chat_scrollbar.config(command=chat_log.yview)
+chat_log.config(yscrollcommand=chat_scrollbar.set)
 
-entry = tk.Entry(chat_frame, width=60, font=('Arial', 14))
+# Entry fields and labels
+entry = tk.Entry(chat_frame, width=60, font=('Arial', 14), bg='white')
 entry.pack()
 
-submit_button = tk.Button(chat_frame, text="Send", font=('Arial', 14), command=on_submit)
+target_label = tk.Label(chat_frame, text="ENTER TARGET", font=('Arial', 12), bg='white')
+target_label.pack()
+target_entry = tk.Entry(chat_frame, width=60, font=('Arial', 14), bg='white')
+target_entry.pack()
+
+submit_button = tk.Button(chat_frame, text="Send", font=('Arial', 14), command=on_submit, bg='white')
 submit_button.pack()
 
-# Load chat history
+clear_button = tk.Button(chat_frame, text="Clear Chat", font=('Arial', 14), command=on_reset, bg='white')
+clear_button.pack()
+
 update_chat_log()
 
-# Default points
-default_points = [(100, 100), (200, 200), (300, 300), (400, 400)]
-default_points.append((450, 450))  # Last point is 'You'
-update_points(canvas, default_points, scale=zoom_scale)
+# --------- Background Thread to Read Incoming Messages ---------
 
-# Run Tkinter loop
+def read_from_module():
+    while True:
+        try:
+            msg = api.readMessage()
+            print("API MESSAGE: " + msg)
+            if msg != -1 and msg != "":
+
+                sender = msg[20:27]
+                content = msg[27:]
+
+                timestamp = get_timestamp()
+                line = f"{timestamp} Message: {content}\n"
+                with open("savedChat.txt", "a") as file:
+                    file.write("Sender: " + sender)
+                    file.write(line)
+                # Update chat log in the main thread
+                chat_log.after(0, lambda: append_to_chat_log(line))
+
+        except Exception as e:
+            print(f"Error reading from module: {e}")
+        time.sleep(0.1)
+
+def append_to_chat_log(line):
+    chat_log.config(state=tk.NORMAL)
+    chat_log.insert(tk.END, line)
+    chat_log.config(state=tk.DISABLED)
+    chat_log.yview(tk.END)
+
+# Start background thread
+print("starting read thread")
+t = threading.Thread(target=read_from_module, daemon=True)
+t.start()
+print("starting main thread")
+# --------- Start Mainloop ---------
 root.mainloop()
