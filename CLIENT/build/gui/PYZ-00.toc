@@ -1,4 +1,4 @@
-('C:\\Users\\ogvru\\Documents\\github\\interspace\\client\\build\\gui\\PYZ-00.pyz',
+('C:\\Users\\ogvru\\Documents\\Github\\interspace\\client\\build\\gui\\PYZ-00.pyz',
  [('PIL',
    'C:\\Users\\ogvru\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\PIL\\__init__.py',
    'PYMODULE'),
@@ -1123,7 +1123,7 @@
    'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\inspect.py',
    'PYMODULE'),
   ('interspace',
-   'C:\\Users\\ogvru\\Documents\\github\\interspace\\client\\interspace.py',
+   'C:\\Users\\ogvru\\Documents\\Github\\interspace\\client\\interspace.py',
    'PYMODULE'),
   ('ipaddress',
    'C:\\Program '

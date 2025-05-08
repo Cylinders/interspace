@@ -8,6 +8,7 @@ import serial.tools.list_ports
 import interspace
 import time
 from datetime import datetime
+import math
 
 # --------- Interspace Setup with Popup Port Selection ---------
 
@@ -17,7 +18,7 @@ api = interspace.Interspace()
 # --------- Tkinter Setup ---------
 
 root = tk.Tk()
-root.title("Radar Display with Matplotlib")
+root.title("Interspace")
 root.geometry("1600x900")
 root.configure(bg='white')
 
@@ -35,14 +36,45 @@ chat_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
 # --------- Buttons ---------
 
-def auto_update():
-    pass
+def update_graph():
+    # Clear the existing points
+    ax.clear()
+
+    # Reapply styling
+    # there is no way this efficient but like i honestly dont care lol
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_title("Module Positions", color="black")
+    ax.set_xlabel("X Axis", color='black')
+    ax.set_ylabel("Y Axis", color='black')
+    ax.tick_params(axis='x', colors='black')
+    ax.tick_params(axis='y', colors='black')
+    for spine in ax.spines.values():
+        spine.set_color('black')
+    ax.grid(True, color='lightgray', linestyle='--', linewidth=0.5)
+
+    # New set of coordinates (example data)
+    new_other_modules = [(0,0), (25, 0), (25, 70)]
+    new_you = (10, 10)
+
+    # Plot other modules
+    for x, y in new_other_modules:
+        ax.scatter(x, y, color='green')
+        ax.text(x + 1, y + 1, "(" + str(x) + ", " + str(y) + ")", color='green', fontsize=9)
+
+    # Plot "you"
+    x, y = new_you
+    ax.scatter(x, y, color='red')
+    ax.text(x + 1, y + 1, "YOU: " + "(" + str(x) + ", " + str(y) + ")", color='red', fontsize=9)
+
+    # Redraw the canvas
+    canvas.draw()
 
 def reset():
     pass
 
-auto_update_button = tk.Button(top_frame, text="Auto Update", command=auto_update, bg='white')
-auto_update_button.pack(side=tk.LEFT)
+update_graph_button = tk.Button(top_frame, text="Update Graph", command=update_graph, bg='white')
+update_graph_button.pack(side=tk.LEFT)
 
 reset_button = tk.Button(top_frame, text="Reset", command=reset, bg='white')
 reset_button.pack(side=tk.LEFT)
@@ -93,20 +125,22 @@ def on_submit():
     target_text = target_entry.get()
     if text or target_text:
         timestamp = get_timestamp()
-        message_lines = []
-        line = f"{timestamp} Target: {target_text}\n"
-        message_lines.append(line)
+        line = f"{timestamp} SENT to {target_text}: {text}\n"
+
+        # Send the message via the API
         api.sendMessage(target_text, text)
 
+        # Save to file
         with open("savedChat.txt", "a") as file:
-            file.writelines(message_lines)
-        # Append directly to chat log
+            file.write(line)
+
+        # Update the chat log display
         chat_log.config(state=tk.NORMAL)
-        for line in message_lines:
-            chat_log.insert(tk.END, line)
+        chat_log.insert(tk.END, line)
         chat_log.config(state=tk.DISABLED)
         chat_log.yview(tk.END)
 
+        # Clear entry fields
         entry.delete(0, tk.END)
         target_entry.delete(0, tk.END)
 
@@ -166,38 +200,70 @@ update_chat_log()
 
 # --------- Background Thread to Read Incoming Messages ---------
 
-def read_from_module():
-    while True:
-        try:
-            msg = api.readMessage()
-            print("API MESSAGE: " + msg)
-            if msg != -1 and msg != "":
-
-                sender = msg[20:27]
-                content = msg[27:]
-
-                timestamp = get_timestamp()
-                line = f"{timestamp} Message: {content}\n"
-                with open("savedChat.txt", "a") as file:
-                    file.write("Sender: " + sender)
-                    file.write(line)
-                # Update chat log in the main thread
-                chat_log.after(0, lambda: append_to_chat_log(line))
-
-        except Exception as e:
-            print(f"Error reading from module: {e}")
-        time.sleep(0.1)
-
 def append_to_chat_log(line):
+    """Update the chat log in a thread-safe way"""
     chat_log.config(state=tk.NORMAL)
     chat_log.insert(tk.END, line)
     chat_log.config(state=tk.DISABLED)
     chat_log.yview(tk.END)
 
+def read_from_module():
+    while True:
+        try:
+            print("read message")
+            msg = api.readMessage()
+            if msg != -1 and msg != "":
+                print(f"API MESSAGE: {msg}")
+
+                # Parse the message - adjust these indices based on your actual message format
+                if type(msg) == float:
+                    try:
+                        timestamp = get_timestamp()
+                        print("DISTANCE PRINTING ONTO SCREEN")
+                        x = msg
+                        c = -78.4
+                        dist = 1.0 / (10.0 ** ((x - c) / 20.0) * (4.0 * math.pi / 915.0))
+                        if dist < 0.0: dist = 0.0
+                        line = f"{timestamp} RECEIVED from {sender}: Distance:" + str(msg) + "\n"
+
+                        # Save to file
+                        print("SAVING")
+                        with open("savedChat.txt", "a") as file:
+                            file.write(line)
+                        print("updating the chat log")
+                        update_chat_log()
+                        # Update chat log in the main thread
+                        root.after(0, lambda l=line: append_to_chat_log(l))
+                    except Exception as e:
+                        print(f"Error parsing message: {e}")
+                else:
+                    try:
+                        sender = msg[7:14]
+                        content = msg[14:]
+
+                        timestamp = get_timestamp()
+                        line = f"{timestamp} RECEIVED from {sender}: {content}\n"
+
+                        # Save to file
+                        print("SAVING")
+                        with open("savedChat.txt", "a") as file:
+                            file.write(line)
+                        print("updating the chat log")
+                        update_chat_log()
+                        # Update chat log in the main thread
+                        root.after(0, lambda l=line: append_to_chat_log(l))
+                    except Exception as e:
+                        print(f"Error parsing message: {e}")
+        except Exception as e:
+            print(f"Error reading from module: {e}")
+
+        time.sleep(0.1)
+
 # Start background thread
-print("starting read thread")
+print("Starting read thread")
 t = threading.Thread(target=read_from_module, daemon=True)
 t.start()
-print("starting main thread")
+print("Starting main thread")
+
 # --------- Start Mainloop ---------
 root.mainloop()

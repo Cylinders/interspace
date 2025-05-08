@@ -56,7 +56,9 @@ target = ""
 sender = ""
 content = ""
 while True:
-    LED.value = False
+    print("success")
+    rfm69.send(bytes("f102313this is a test message!\r\n", "utf-8"))
+    
     packet = rfm69.receive()
 
     if packet is None or packet == "":
@@ -78,3 +80,5 @@ while True:
             time.sleep(3)
             rfm69.send(bytes(sender + target + content + "\r\n", "utf-8"))
     # packet = rfm9x.receive(timeout=5.0)
+    time.sleep(2)
+    LED.value = not LED.value

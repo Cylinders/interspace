@@ -1,1 +1,21 @@
-[2025-05-01 13:01:51] Chat log cleared
+[2025-05-07 20:44:48] Chat log cleared
+[2025-05-07 20:46:27] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:27] RECEIVED from this is: Distance:-27.0
+[2025-05-07 20:46:30] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:30] RECEIVED from this is: Distance:-30.5
+[2025-05-07 20:46:32] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:32] RECEIVED from this is: Distance:-43.5
+[2025-05-07 20:46:35] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:35] RECEIVED from this is: Distance:-48.5
+[2025-05-07 20:46:40] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:40] RECEIVED from this is: Distance:-66.5
+[2025-05-07 20:46:42] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:42] RECEIVED from this is: Distance:-71.5
+[2025-05-07 20:46:45] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:45] RECEIVED from this is: Distance:-61.0
+[2025-05-07 20:46:47] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:47] RECEIVED from this is: Distance:-55.5
+[2025-05-07 20:46:50] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:50] RECEIVED from this is: Distance:-57.0
+[2025-05-07 20:46:52] RECEIVED from this is:  a test message!
+[2025-05-07 20:46:52] RECEIVED from this is: Distance:-59.0

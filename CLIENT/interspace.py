@@ -154,10 +154,15 @@ class Interspace():
                 if self.ser.in_waiting > 0:
                     serIn = self.ser.readline().strip().decode("utf8")
                     print(f"Received: {serIn}")
-
                     if serIn.startswith("interspace1.0"):
-                        return serIn
+                        return serIn[13:]
+                    elif serIn.startswith("interspaceg1.0"):
+                        try:
+                            return float(serIn[14:])
+                        except:
+                            pass
                 else:
+
                     # Small pause to prevent CPU maxing out
                     time.sleep(0.1)
 
